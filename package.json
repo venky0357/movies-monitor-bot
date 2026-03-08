@@ -4,9 +4,9 @@
   "description": "",
   "main": "index.js",
  "scripts": {
- "start": "node telegrambot.js",
- "worker": "node monitorworker.js",
- "postinstall": "npx playwright install --with-deps chromium"
+  "start": "node src/bot/telegramBot.js",
+  "worker": "node src/workers/monitorWorker.js",
+  "postinstall": "npx playwright install --with-deps chromium"
 },
   "keywords": [],
   "author": "",
