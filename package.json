@@ -6,7 +6,7 @@
  "scripts": {
   "start": "node src/bot/telegramBot.js",
   "worker": "node src/workers/monitorWorker.js",
-  "postinstall": "npx playwright install --with-deps chromium"
+  "postinstall": "npx playwright install  chromium"
 },
   "keywords": [],
   "author": "",
