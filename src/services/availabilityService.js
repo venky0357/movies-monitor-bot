@@ -50,10 +50,12 @@ async function checkAvailability(page, job){
 
   await showtimeBtn.click({ force:true })
 
-  await page.waitForSelector(
-   "span[aria-label*='seat']",
-   { timeout:20000 }
-  )
+//   await page.waitForSelector(
+//    "span[aria-label*='seat']",
+//    { timeout:20000 }
+//   )
+
+await page.waitForSelector("[aria-label*='seat']", { timeout:20000 })
 
   const totalSeats = await page.locator("span.available").count()
 
