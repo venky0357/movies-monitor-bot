@@ -10,7 +10,8 @@ async function getContext(){
   console.log("Launching shared browser...")
 
   browser = await chromium.launch({
-   headless:true
+   headless:true,
+   args: ["--no-sandbox", "--disable-setuid-sandbox"]
   })
 
   context = await browser.newContext({
