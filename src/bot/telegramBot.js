@@ -2,6 +2,7 @@
 
 // const TelegramBot = require("node-telegram-bot-api")
 // const pool = require("../db/db")
+// const { getContext } = require("../services/browserManager")
 
 // const bot = new TelegramBot(process.env.BOT_TOKEN,{ polling:true })
 
@@ -11,6 +12,7 @@
 //  "AGS Cinemas OMR, Navalur, Chennai",
 //  "INOX The Marina Mall OMR, Egatoor, Chennai"
 // ]
+
 
 // /* START */
 
@@ -24,7 +26,7 @@
 // Supported Theatres
 
 // 1️⃣ AGS Cinemas OMR Navalur
-// 2️⃣ INOX Marina Mall OMR
+// 2️⃣ INOX Marina Mall
 
 // Commands
 // /monitor → Start monitoring
@@ -35,17 +37,57 @@
 
 // /* MONITOR COMMAND */
 
-// bot.onText(/\/monitor/, msg => {
+// bot.onText(/\/monitor/, async msg => {
 
 //  const chatId = msg.chat.id
 
-//  userState[chatId] = { step:"movie" }
+// //  const context = await getContext()
+// //  const page = await context.newPage()
 
-//  bot.sendMessage(chatId,"Enter movie name")
+// const { browser, page } = await createPage()
+
+//  try{
+
+//   await page.goto("https://www.district.in/movies",{
+//    waitUntil:"domcontentloaded"
+//   })
+
+//   await page.waitForTimeout(5000)
+
+//   const movies = await page.locator("h5.dds-tracking-tight").allTextContents()
+
+//   const uniqueMovies = [...new Set(movies)].slice(0,10)
+
+//   console.log("Movies:",uniqueMovies)
+
+//   if(uniqueMovies.length === 0){
+//    return bot.sendMessage(chatId,"❌ No movies found")
+//   }
+
+//   const buttons = uniqueMovies.map(movie => [
+//    { text:movie, callback_data:`movie_${movie}` }
+//   ])
+
+//   bot.sendMessage(chatId,"🎬 Select Movie",{
+//    reply_markup:{ inline_keyboard:buttons }
+//   })
+
+//  }catch(err){
+
+//   console.log("Movie fetch error:",err)
+
+//   bot.sendMessage(chatId,"❌ Failed to fetch movies")
+
+//  }finally{
+
+//   await page.close()
+
+//  }
+
 // })
 
 
-// /* STOP COMMAND */
+// /* STOP */
 
 // bot.onText(/\/stop/, async msg => {
 
@@ -69,7 +111,7 @@
 
 //  }catch(err){
 
-//   console.log("Stop error:", err)
+//   console.log(err)
 
 //   bot.sendMessage(chatId,"❌ Failed to stop monitoring")
 //  }
@@ -77,7 +119,7 @@
 // })
 
 
-// /* CLEAR COMMAND (ADMIN STYLE) */
+// /* CLEAR */
 
 // bot.onText(/\/clear/, async msg => {
 
@@ -94,7 +136,7 @@
 
 //  }catch(err){
 
-//   console.log("Clear error:", err)
+//   console.log(err)
 
 //   bot.sendMessage(chatId,"❌ Failed to clear monitors")
 //  }
@@ -102,81 +144,179 @@
 // })
 
 
-// /* MESSAGE HANDLER */
+// /* BUTTON HANDLER */
 
-// bot.on("message", async msg => {
+// bot.on("callback_query", async query => {
 
-//  const chatId = msg.chat.id
-//  const text = msg.text
-
-//  if(text.startsWith("/")) return
-
-//  const state = userState[chatId]
-
-//  if(!state) return
+//  const chatId = query.message.chat.id
+//  const data = query.data
 
 
-//  /* MOVIE STEP */
+//  /* MOVIE SELECT */
 
-//  if(state.step === "movie"){
+//  if(data.startsWith("movie_")){
 
-//   state.movie = text
-//   state.step = "date"
+//   const movie = data.replace("movie_","")
 
-//   return bot.sendMessage(chatId,"Enter date YYYY-MM-DD")
+//   userState[chatId] = { movie }
+
+//   const buttons = THEATRES.map(t => [
+//    {
+//     text:t.split(",")[0],
+//     callback_data:`theatre_${t}`
+//    }
+//   ])
+
+//   return bot.sendMessage(chatId,"🎥 Select Theatre",{
+//    reply_markup:{ inline_keyboard:buttons }
+//   })
 //  }
 
 
-//  /* DATE STEP */
+//  /* THEATRE SELECT */
 
-//  if(state.step === "date"){
+//  if(data.startsWith("theatre_")){
 
-//   state.date = text
-//   state.step = "time"
+//   const theatre = data.replace("theatre_","")
 
-//   return bot.sendMessage(chatId,"Enter show time (example: 09:30 PM)")
+//   userState[chatId].theatre = theatre
+
+//   const context = await getContext()
+//   const page = await context.newPage()
+
+//   try{
+
+//    const movie = userState[chatId].movie
+
+//    await page.goto("https://www.district.in/movies")
+
+//    await page.waitForTimeout(4000)
+
+//    const movieLocator = page.locator(`text=${movie}`).first()
+
+//    await movieLocator.click({ force:true })
+
+//    await page.waitForSelector(
+//     "li[class*='MovieSessionsListing_movieSessions']",
+//     { timeout:15000 }
+//    )
+
+//    const theatreKeyword = theatre.split(",")[0]
+
+//    const theatreBlock = page.locator(
+//     "li[class*='MovieSessionsListing_movieSessions']",
+//     { hasText: theatreKeyword }
+//    ).first()
+
+//    const shows = await theatreBlock
+//     .locator("li[role='button']")
+//     .allTextContents()
+
+//    const buttons = shows.map(show => [
+//     { text:show, callback_data:`show_${show}` }
+//    ])
+
+//    bot.sendMessage(chatId,"⏰ Select Showtime",{
+//     reply_markup:{ inline_keyboard:buttons }
+//    })
+
+//   }catch(err){
+
+//    console.log("Showtime error:",err)
+
+//    bot.sendMessage(chatId,"❌ Failed to fetch showtimes")
+
+//   }finally{
+
+//    await page.close()
+
+//   }
+
 //  }
 
 
-//  /* TIME STEP */
+//  /* SHOWTIME */
 
-//  if(state.step === "time"){
+//  if(data.startsWith("show_")){
 
-//   state.time = text
+//   const show = data.replace("show_","")
 
-//   for(const theatre of THEATRES){
+//   userState[chatId].time = show
+
+//   return bot.sendMessage(chatId,"📅 Select Date",{
+//    reply_markup:{
+//     inline_keyboard:[
+//      [
+//       { text:"Today", callback_data:"date_today" },
+//       { text:"Tomorrow", callback_data:"date_tomorrow" }
+//      ]
+//     ]
+//    }
+//   })
+
+//  }
+
+
+//  /* DATE */
+
+//  if(data === "date_today" || data === "date_tomorrow"){
+
+//   const state = userState[chatId]
+
+//   let date = new Date()
+
+//   if(data === "date_tomorrow"){
+//    date.setDate(date.getDate()+1)
+//   }
+
+//   const showDate = date.toISOString().split("T")[0]
+
+//   try{
 
 //    await pool.query(
 //    `INSERT INTO monitors
-//    (user_id, movie_name, theatre_name, show_date, show_time)
+//    (user_id,movie_name,theatre_name,show_date,show_time)
 //    VALUES ($1,$2,$3,$4,$5)`,
 //    [
 //     chatId,
 //     state.movie,
-//     theatre,
-//     state.date,
+//     state.theatre,
+//     showDate,
 //     state.time
 //    ])
+
+//    bot.sendMessage(chatId,
+// `✅ Monitoring Started
+
+// 🎬 Movie: ${state.movie}
+// 🎥 Theatre: ${state.theatre}
+// ⏰ Showtime: ${state.time}
+// 📅 Date: ${showDate}`)
+
+//   }catch(err){
+
+//    console.log(err)
+
+//    bot.sendMessage(chatId,"❌ Failed to start monitoring")
+
 //   }
 
-//   bot.sendMessage(
-//    chatId,
-//    "✅ Monitoring started for AGS Navalur and INOX Marina Mall"
-//   )
-
 //   delete userState[chatId]
+
 //  }
 
 // })
 
+
 // module.exports = bot
+
 
 
 require("dotenv").config()
 
 const TelegramBot = require("node-telegram-bot-api")
 const pool = require("../db/db")
-const { getContext } = require("../services/browserManager")
+const { createBrowser } = require("../services/browserManager")
 
 const bot = new TelegramBot(process.env.BOT_TOKEN,{ polling:true })
 
@@ -206,6 +346,7 @@ Commands
 /monitor → Start monitoring
 /stop → Stop monitoring
 /clear → Clear all monitors`)
+
 })
 
 
@@ -215,22 +356,28 @@ bot.onText(/\/monitor/, async msg => {
 
  const chatId = msg.chat.id
 
- const context = await getContext()
- const page = await context.newPage()
+ let browser
+ let context
+ let page
 
  try{
+
+  const browserData = await createBrowser()
+
+  browser = browserData.browser
+  context = browserData.context
+
+  page = await context.newPage()
 
   await page.goto("https://www.district.in/movies",{
    waitUntil:"domcontentloaded"
   })
 
-  await page.waitForTimeout(5000)
+  await page.waitForTimeout(4000)
 
   const movies = await page.locator("h5.dds-tracking-tight").allTextContents()
 
   const uniqueMovies = [...new Set(movies)].slice(0,10)
-
-  console.log("Movies:",uniqueMovies)
 
   if(uniqueMovies.length === 0){
    return bot.sendMessage(chatId,"❌ No movies found")
@@ -252,7 +399,7 @@ bot.onText(/\/monitor/, async msg => {
 
  }finally{
 
-  await page.close()
+  if(browser) await browser.close()
 
  }
 
@@ -286,6 +433,7 @@ Removed jobs: ${result.rowCount}`)
   console.log(err)
 
   bot.sendMessage(chatId,"❌ Failed to stop monitoring")
+
  }
 
 })
@@ -311,6 +459,7 @@ Deleted rows: ${result.rowCount}`)
   console.log(err)
 
   bot.sendMessage(chatId,"❌ Failed to clear monitors")
+
  }
 
 })
@@ -342,6 +491,7 @@ bot.on("callback_query", async query => {
   return bot.sendMessage(chatId,"🎥 Select Theatre",{
    reply_markup:{ inline_keyboard:buttons }
   })
+
  }
 
 
@@ -353,10 +503,18 @@ bot.on("callback_query", async query => {
 
   userState[chatId].theatre = theatre
 
-  const context = await getContext()
-  const page = await context.newPage()
+  let browser
+  let context
+  let page
 
   try{
+
+   const browserData = await createBrowser()
+
+   browser = browserData.browser
+   context = browserData.context
+
+   page = await context.newPage()
 
    const movie = userState[chatId].movie
 
@@ -400,7 +558,7 @@ bot.on("callback_query", async query => {
 
   }finally{
 
-   await page.close()
+   if(browser) await browser.close()
 
   }
 

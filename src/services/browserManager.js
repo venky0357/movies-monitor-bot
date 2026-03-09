@@ -1,31 +1,54 @@
+// const { chromium } = require("playwright")
+
+// let browser
+// let context
+
+// async function getContext(){
+
+//  if(!browser){
+
+//   console.log("Launching shared browser...")
+
+//   browser = await chromium.launch({
+//    headless:true,
+//    args: ["--no-sandbox", "--disable-setuid-sandbox"]
+//   })
+
+//   context = await browser.newContext({
+//    viewport:{ width:1280, height:900 },
+//    geolocation:{
+//     latitude:13.0827,
+//     longitude:80.2707
+//    },
+//    permissions:["geolocation"]
+//   })
+
+//  }
+
+//  return context
+// }
+
+// module.exports = { getContext }
+
 const { chromium } = require("playwright")
 
-let browser
-let context
+async function createBrowser(){
 
-async function getContext(){
+ const browser = await chromium.launch({
+  headless: true,
+  args: ["--no-sandbox","--disable-setuid-sandbox"]
+ })
 
- if(!browser){
+ const context = await browser.newContext({
+  viewport:{ width:1280, height:900 },
+  geolocation:{
+   latitude:13.0827,
+   longitude:80.2707
+  },
+  permissions:["geolocation"]
+ })
 
-  console.log("Launching shared browser...")
-
-  browser = await chromium.launch({
-   headless:true,
-   args: ["--no-sandbox", "--disable-setuid-sandbox"]
-  })
-
-  context = await browser.newContext({
-   viewport:{ width:1280, height:900 },
-   geolocation:{
-    latitude:13.0827,
-    longitude:80.2707
-   },
-   permissions:["geolocation"]
-  })
-
- }
-
- return context
+ return { browser, context }
 }
 
-module.exports = { getContext }
+module.exports = { createBrowser }
