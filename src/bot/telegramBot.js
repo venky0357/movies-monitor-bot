@@ -501,6 +501,14 @@ bot.on("callback_query", async query => {
 
   const theatre = data.replace("theatre_","")
 
+  if (!userState[chatId]) {
+  bot.sendMessage(chatId,"Session expired. Please type /start again.")
+  return
+  }
+  if (!userState[chatId].theatre) {
+  bot.sendMessage(chatId,"Session expired. Please type /start again.")
+  return
+  }
   userState[chatId].theatre = theatre
 
   let browser
