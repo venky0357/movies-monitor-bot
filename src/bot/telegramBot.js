@@ -505,10 +505,7 @@ bot.on("callback_query", async query => {
   bot.sendMessage(chatId,"Session expired. Please type /start again.")
   return
   }
-  if (!userState[chatId].theatre) {
-  bot.sendMessage(chatId,"Session expired. Please type /start again.")
-  return
-  }
+
   userState[chatId].theatre = theatre
 
   let browser
